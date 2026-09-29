@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BenchMate – Votre copilote de réparation électronique</title>
+<style>
+:root{--bg:#0b100d;--pn:#131b16;--bd:#25332a;--tx:#e8f0ea;--mu:#8ea295;--ac:#3ddc97;--wa:#ff6b5e;--am:#f5c15a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh}
+header{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--bd);flex-wrap:wrap}
+header h1{margin:0;font-size:18px}header h1 b{color:var(--ac)}
+header p{margin:0;color:var(--mu);font-size:13px;flex:1;min-width:200px}
+button,select,input,textarea{font:inherit;color:var(--tx)}
+button{background:var(--pn);border:1px solid var(--bd);border-radius:8px;padding:8px 12px;cursor:pointer}
+button:hover{border-color:var(--ac)}
+button.p{background:var(--ac);border-color:var(--ac);color:#04140c;font-weight:700}
+button:disabled{opacity:.5;cursor:default}
+input,select,textarea{background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:8px;width:100%}
+.app{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:12px;padding:12px;height:calc(100vh - 62px)}
+.stage{display:flex;flex-direction:column;gap:8px;min-height:0}
+.view{position:relative;flex:1;min-height:260px;background:#000;border:1px solid var(--bd);border-radius:12px;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.view video,.view canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+#frame{display:none}
+.ph{position:relative;text-align:center;color:var(--mu);padding:24px;max-width:460px}
+.ph h2{color:var(--tx);margin:0 0 8px;font-size:20px}
+.badge{position:absolute;top:10px;left:10px;background:rgba(0,0,0,.6);border:1px solid var(--bd);border-radius:99px;padding:3px 10px;font-size:12px;z-index:2}
+.badge.live{color:var(--ac)}.badge.frz{color:var(--am)}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.bar select{width:auto;max-width:220px}
+.gal{display:flex;gap:8px;flex-wrap:wrap;min-height:0}
+.gal .th{position:relative;width:74px;height:56px;border-radius:6px;overflow:hidden;border:1px solid var(--bd);flex:none;cursor:pointer}
+.gal .th.on{border-color:var(--ac);box-shadow:0 0 0 2px var(--ac)}
+.gal .th img{width:100%;height:100%;object-fit:cover;display:block}
+.gal .th b{position:absolute;bottom:2px;left:4px;font-size:10px;background:rgba(0,0,0,.6);color:var(--ac);padding:0 4px;border-radius:4px}
+.gal .th button{position:absolute;top:1px;right:1px;background:rgba(0,0,0,.7);border:0;color:var(--wa);width:18px;height:18px;padding:0;line-height:1;border-radius:0 6px 0 6px;font-size:12px}
+.gal .th button.sq{top:1px;right:20px;color:var(--ac);border-radius:6px}
+.side{display:flex;flex-direction:column;gap:8px;min-height:0;background:var(--pn);border:1px solid var(--bd);border-radius:12px;padding:12px}
+.ctxf{display:grid;gap:6px}
+.chat{flex:1;overflow:auto;display:flex;flex-direction:column;gap:8px;min-height:120px}
+.m{padding:8px 10px;border-radius:10px;max-width:95%;white-space:pre-wrap}
+.m.u{background:#1d2b23;align-self:flex-end}
+.m.a{background:var(--bg);border:1px solid var(--bd)}
+.m.s{background:#3a1a18;color:var(--wa);border:1px solid var(--wa);font-size:13px}
+.m.e{color:var(--wa);font-size:13px}
+.zl{font-size:13px;color:var(--mu);margin-top:6px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chips button{font-size:12px;padding:4px 10px;border-radius:99px}
+.send{display:flex;gap:6px}
+.send textarea{height:44px;resize:none}
+dialog{background:var(--pn);color:var(--tx);border:1px solid var(--bd);border-radius:12px;max-width:520px;width:92vw}
+dialog::backdrop{background:rgba(0,0,0,.6)}
+dialog label{display:block;font-size:12px;color:var(--mu);margin:10px 0 3px}
+.mu{color:var(--mu);font-size:13px}
+a{color:var(--ac)}
+.je{border-top:1px solid var(--bd);padding:8px 0}
+.foot{font-size:11px;color:var(--mu);text-align:center}
+@media(max-width:900px){.app{grid-template-columns:1fr;height:auto}.view{height:58vh;flex:none}.chat{max-height:50vh}}
+</style>
+</head>
+<body>
+<header id="hdr">
+  <h1>Bench<b>Mate</b></h1>
+  <p>Montrez votre carte à l'IA. Elle la regarde avec vous, repère les zones suspectes et vous guide mesure après mesure. Vous n'êtes plus seul face à la panne.</p>
+  <button id="bJ">Journal</button><button id="bS">⚙︎ IA gratuite</button>
+</header>
+
+<div class="app" id="app">
+<section class="stage">
+  <div class="view">
+    <span class="badge" id="badge">Aucune image</span>
+    <video id="vid" autoplay playsinline muted></video>
+    <canvas id="frame"></canvas>
+    <div class="ph" id="ph">
+      <h2>Placez la carte sous la caméra</h2>
+      <p>Webcam, caméra microscope, smartphone (QR code en Wi-Fi/USB, ou en webcam USB directe) ou photo importée. Bonne lumière, carte bien cadrée, composants nets. <strong>La caméra n'est pas obligatoire</strong> : vous pouvez travailler uniquement avec des photos.</p>
+      <div class="bar" style="justify-content:center">
+        <button class="p" id="bCam">Activer la caméra</button>
+        <button id="bUp2">Importer des photos</button>
+      </div>
+    </div>
+  </div>
+  <div class="bar">
+    <select id="sel" title="Caméra"></select>
+    <button id="bPhone">📱 Connecter mon smartphone</button>
+    <button id="bAdd">➕ Ajouter cette vue</button>
+    <button id="bLive">↺ Direct</button>
+    <button id="bUp">Importer des photos</button>
+    <input type="file" id="file" accept="image/*" capture="environment" multiple hidden>
+  </div>
+  <div class="gal" id="gal"></div>
+  <div class="bar">
+    <button class="p" id="bSnap">🔍 Analyser <span id="gcount"></span></button>
+    <span class="mu" id="galhint">Ajoutez une ou plusieurs vues (face, dos, zoom sur une zone) avant d'analyser.</span>
+  </div>
+  <div class="foot">Suggestions d'une IA, à vérifier. Débranchez, déchargez les condensateurs, ne touchez jamais un primaire sous tension sans transformateur d'isolement.</div>
+</section>
+
+<aside class="side">
+  <div class="ctxf">
+    <input id="dev" placeholder="Appareil / carte (marque, modèle)">
+    <input id="sym" placeholder="Symptôme (ex. ne s'allume plus, LED standby)">
+    <select id="lvl"><option>débutant</option><option>intermédiaire</option><option>confirmé</option></select>
+  </div>
+  <div class="chat" id="chat"><div class="m a">Bonjour ! Renseignez l'appareil et le symptôme, activez la caméra puis cliquez sur « Analyser cette image ». Je vous proposerai les zones à inspecter et les premières mesures à faire.</div></div>
+  <div class="chips">
+    <button data-q="Quelle est la prochaine mesure à faire, avec le point de test et la valeur attendue ?">Prochaine mesure ?</button>
+    <button data-q="Explique-moi simplement comment faire cette mesure en sécurité.">Comment faire ?</button>
+    <button id="bDone">✔ Terminer</button>
+  </div>
+  <div class="send"><textarea id="msg" placeholder="Ex. « TP5 = 0 V, F1 OK »"></textarea><button class="p" id="bSend">Envoyer</button></div>
+</aside>
+</div>
+
+<dialog id="dS">
+  <h3>IA gratuite : votre clé, votre navigateur</h3>
+  <p class="mu">Les clés restent dans ce navigateur (localStorage) et ne sont envoyées qu'au fournisseur choisi. Les noms de modèles évoluent : modifiez-les si besoin. Le modèle doit accepter les images.</p>
+  <label>Fournisseur</label>
+  <select id="pv"><option value="gemini">Google Gemini (AI Studio)</option><option value="groq">Groq</option><option value="openrouter">OpenRouter (modèles :free)</option></select>
+  <label>Clé API</label><input id="key" type="password" autocomplete="off">
+  <label>Modèle</label><input id="mod">
+  <div class="mu" id="hint" style="margin-top:8px"></div>
+  <div class="bar" style="margin-top:12px"><button class="p" id="sv">Enregistrer</button><button id="tst">Tester</button><button id="cl">Fermer</button><span class="mu" id="tr"></span></div>
+</dialog>
+<dialog id="dJ">
+  <h3>Journal des réparations</h3><div id="jl"></div>
+  <div class="bar" style="margin-top:12px"><button id="jx">Exporter JSON</button><button id="jc">Fermer</button></div>
+</dialog>
+<dialog id="dQ">
+  <h3>Connecter la caméra du smartphone (Wi-Fi ou USB)</h3>
+  <p class="mu">Scannez ce code avec l'appareil photo de votre téléphone (pas besoin d'appli). La page s'ouvre sur le téléphone et sa caméra remplace celle de l'ordinateur ici. Ça fonctionne tant que le téléphone a une connexion internet : Wi-Fi (idéalement le même réseau) ou <strong>partage de connexion par câble USB</strong> avec l'ordinateur.</p>
+  <div id="qrbox" style="display:flex;justify-content:center;background:#fff;border-radius:8px;padding:12px;margin:10px 0"></div>
+  <p class="mu" id="qstatus">Génération du code…</p>
+  <p class="mu">Le téléphone ne peut pas scanner ? Ouvrez ce lien dessus : <span id="qlink" style="word-break:break-all"></span></p>
+  <p class="mu">Câble USB sans passer par cette page : branchez le téléphone, activez son mode « webcam USB » (natif sur certains Android, ou via une appli comme DroidCam/Iriun/Camo en mode câble) : il apparaît alors directement dans la liste des caméras ci-dessous, sans QR code.</p>
+  <div class="bar" style="margin-top:8px"><button id="qc">Annuler</button></div>
+</dialog>
+
+<div id="phoneView" style="display:none;min-height:100vh;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;gap:14px">
+  <h1>Bench<b>Mate</b> <span class="mu" style="font-size:14px;font-weight:400">— caméra distante</span></h1>
+  <video id="pvid" autoplay playsinline muted style="width:100%;max-width:480px;border-radius:12px;background:#000;display:none"></video>
+  <p class="mu" id="pmsg" style="max-width:420px">Ce téléphone va servir de caméra pour votre diagnostic sur l'ordinateur. Gardez cette page ouverte et posez le téléphone face à la carte.</p>
+  <button class="p" id="pGo" style="font-size:16px;padding:12px 22px">📷 Activer la caméra et connecter</button>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const ls={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const DEF={gemini:{m:"gemini-2.5-flash",h:"Clé gratuite : ",u:"https://aistudio.google.com/apikey",n:"aistudio.google.com/apikey"},
+ groq:{m:"meta-llama/llama-4-scout-17b-16e-instruct",h:"Clé gratuite : ",u:"https://console.groq.com/keys",n:"console.groq.com/keys",x:" (choisir un modèle vision)"},
+ openrouter:{m:"google/gemini-2.0-flash-exp:free",h:"Clé : ",u:"https://openrouter.ai/keys",n:"openrouter.ai/keys",x:", puis un modèle vision se terminant par :free"}};
+let cfg=ls.get("bm_cfg",{p:"gemini",keys:{},models:{}});
+let stream=null,frozen=false,img=null,gallery=[],hist=[],busy=false,last="";
+const MAXG=6;
+
+// ---------- dynamic library loading (peerjs + qrcodejs, only when needed) ----------
+const loaded={};
+function loadScript(src){
+ if(loaded[src])return loaded[src];
+ loaded[src]=new Promise((res,rej)=>{const s=document.createElement("script");s.src=src;s.onload=res;
+  s.onerror=()=>rej(new Error("Chargement impossible : "+src));document.head.appendChild(s)});
+ return loaded[src];
+}
+
+// ---------- phone camera mode (this page opened via the QR code) ----------
+(function(){
+ const room=new URLSearchParams(location.search).get("room");
+ if(!room)return;
+ document.getElementById("hdr").style.display="none";
+ document.getElementById("app").style.display="none";
+ document.getElementById("phoneView").style.display="flex";
+ const msg=document.getElementById("pmsg"),btn=document.getElementById("pGo");
+ btn.onclick=async()=>{
+  btn.disabled=true;msg.textContent="Activation de la caméra…";
+  try{
+   const st=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"},width:{ideal:1920},height:{ideal:1080}},audio:false});
+   const v=document.getElementById("pvid");v.srcObject=st;v.style.display="block";
+   msg.textContent="Connexion à l'ordinateur…";
+   await loadScript("https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js");
+   const peer=new Peer();
+   peer.on("open",()=>{
+    const call=peer.call("bm-"+room,st);
+    if(!call){msg.textContent="Impossible d'appeler l'ordinateur. Revenez au QR code et réessayez.";btn.disabled=false;return}
+    call.on("error",e=>{msg.textContent="Erreur de connexion : "+(e.message||e.type||e)});
+    call.on("close",()=>{msg.textContent="Déconnecté de l'ordinateur.";btn.disabled=false;btn.style.display="inline-block"});
+    msg.textContent="✔ Connecté ! Posez le téléphone en visant la carte, gardez cette page ouverte.";
+    btn.style.display="none";
+    try{navigator.wakeLock&&navigator.wakeLock.request("screen")}catch(e){}
+   });
+   peer.on("error",e=>{msg.textContent="Erreur de connexion au relais : "+(e.type||e.message||e)+". Vérifiez la connexion internet du téléphone.";btn.disabled=false});
+  }catch(e){msg.textContent="Caméra refusée ou indisponible : "+(e.message||e.name)+". Autorisez l'accès à la caméra dans les réglages du navigateur.";btn.disabled=false}
+ };
+})();
+
+let activeIdx=-1;
+function renderGal(){
+ const g=$("gal");
+ g.innerHTML=gallery.map((b,i)=>`<div class="th${i===activeIdx?" on":""}" data-v="${i}"><img src="data:image/jpeg;base64,${b}"><b>${i+1}</b><button data-i="${i}" title="Retirer">×</button><button class="sq" data-s="${i}" title="Analyser seulement celle-ci">🔍</button></div>`).join("");
+ g.querySelectorAll("button[data-i]").forEach(btn=>btn.onclick=e=>{e.stopPropagation();const i=+btn.dataset.i;gallery.splice(i,1);if(activeIdx===i)activeIdx=-1;else if(activeIdx>i)activeIdx--;renderGal()});
+ g.querySelectorAll("button[data-s]").forEach(btn=>btn.onclick=e=>{e.stopPropagation();sendOne(+btn.dataset.s)});
+ g.querySelectorAll(".th").forEach(t=>t.onclick=()=>{const i=+t.dataset.v;activeIdx=i;showStill(gallery[i]);renderGal()});
+ $("gcount").textContent=gallery.length?`(${gallery.length})`:"";
+ $("galhint").style.display=gallery.length?"none":"inline";
+}
+function addToGallery(b64){if(!b64)return;if(gallery.length>=MAXG){bot(`Maximum ${MAXG} images à la fois. Retirez-en une avant d'ajouter.`,"e");return}gallery.push(b64);activeIdx=gallery.length-1;renderGal()}
+
+
+// ---------- camera ----------
+async function startCam(id){
+ try{
+  if(stream)stream.getTracks().forEach(t=>t.stop());
+  const v={width:{ideal:1920},height:{ideal:1080}};
+  if(id)v.deviceId={exact:id};else v.facingMode="environment";
+  stream=await navigator.mediaDevices.getUserMedia({video:v});
+  $("vid").srcObject=stream;
+  const devs=(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==="videoinput");
+  const cur=stream.getVideoTracks()[0].getSettings().deviceId;
+  $("sel").innerHTML=devs.map((d,i)=>`<option value="${esc(d.deviceId)}" ${d.deviceId===cur?"selected":""}>${esc(d.label||"Caméra "+(i+1))}</option>`).join("");
+  live();
+ }catch(e){bot("Caméra indisponible : "+(e.message||e.name)+". La page doit être ouverte en HTTPS ou en localhost, et l'accès caméra autorisé. Vous pouvez aussi importer une photo.","e")}
+}
+function live(){frozen=false;$("frame").style.display="none";$("vid").style.display="block";$("ph").style.display="none";setB("● Direct","live")}
+function setB(t,c){const b=$("badge");b.textContent=t;b.className="badge "+(c||"")}
+$("bCam").onclick=()=>startCam();
+$("sel").onchange=e=>startCam(e.target.value);
+$("bLive").onclick=()=>{if(stream)live();else startCam()};
+
+// ---------- detect a camera plugged/unplugged live (e.g. phone in USB webcam mode) ----------
+let knownCamCount=null;
+if(navigator.mediaDevices&&navigator.mediaDevices.enumerateDevices){
+ navigator.mediaDevices.enumerateDevices().then(devs=>{knownCamCount=devs.filter(d=>d.kind==="videoinput").length}).catch(()=>{});
+}
+if(navigator.mediaDevices&&navigator.mediaDevices.addEventListener){
+ navigator.mediaDevices.addEventListener("devicechange",async()=>{
+  try{
+   const devs=(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==="videoinput");
+   if(knownCamCount!==null&&devs.length>knownCamCount)bot("Nouvelle caméra détectée (câble USB ou autre). Sélectionnez-la dans la liste des caméras si besoin.");
+   knownCamCount=devs.length;
+   if(stream){const cur=stream.getVideoTracks()[0].getSettings().deviceId;
+    $("sel").innerHTML=devs.map((d,i)=>`<option value="${esc(d.deviceId)}" ${d.deviceId===cur?"selected":""}>${esc(d.label||"Caméra "+(i+1))}</option>`).join("");
+   }
+  }catch(e){}
+ });
+}
+
+// ---------- pair a phone camera via QR code ----------
+let hostPeer=null;
+$("bPhone").onclick=async()=>{
+ $("dQ").showModal();$("qstatus").textContent="Chargement…";$("qrbox").innerHTML="";$("qlink").textContent="";
+ try{
+  await Promise.all([loadScript("https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js"),loadScript("https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js")]);
+ }catch(e){$("qstatus").textContent="Impossible de charger les bibliothèques nécessaires (réseau bloqué). Ouvrez cette page depuis votre propre hébergement pour utiliser cette fonction.";return}
+ const roomId=Math.random().toString(36).slice(2,8);
+ const url=location.origin+location.pathname+"?room="+roomId;
+ $("qlink").textContent=url;
+ new QRCode($("qrbox"),{text:url,width:200,height:200,correctLevel:QRCode.CorrectLevel.M});
+ $("qstatus").textContent="Chargement du relais…";
+ if(hostPeer){try{hostPeer.destroy()}catch(e){}}
+ hostPeer=new Peer("bm-"+roomId);
+ hostPeer.on("open",()=>{$("qstatus").textContent="Prêt : scannez le code avec l'appareil photo du téléphone."});
+ hostPeer.on("call",call=>{
+  call.answer();
+  call.on("stream",rs=>{
+   if(stream)stream.getTracks().forEach(t=>t.stop());
+   stream=rs;$("vid").srcObject=rs;live();setB("📱 Téléphone connecté","live");
+   $("dQ").close();bot("Téléphone connecté : sa caméra remplace maintenant celle de l'ordinateur.");
+  });
+  call.on("close",()=>bot("Le téléphone s'est déconnecté.","e"));
+  call.on("error",e=>bot("Erreur de flux vidéo : "+(e.message||e),"e"));
+ });
+ hostPeer.on("error",e=>{$("qstatus").textContent="Erreur de connexion au relais : "+(e.type||e.message||e)+"."});
+};
+$("qc").onclick=()=>{$("dQ").close();if(hostPeer){try{hostPeer.destroy()}catch(e){}hostPeer=null}};
+
+$("bUp").onclick=()=>$("file").click();
+$("bUp2").onclick=()=>$("file").click();
+function showStill(b64){
+ const c=$("frame"),im=new Image();
+ im.onload=()=>{
+  c.width=im.naturalWidth;c.height=im.naturalHeight;
+  c.getContext("2d").drawImage(im,0,0);
+  img=b64;frozen=true;
+  c.style.display="block";$("vid").style.display="none";$("ph").style.display="none";
+  setB("🖼 Photo importée","frz");
+  URL.revokeObjectURL(im.src);
+ };
+ im.src="data:image/jpeg;base64,"+b64;
+}
+$("file").onchange=e=>{
+ const files=[...e.target.files];
+ files.forEach((f,i)=>{
+  const im=new Image();
+  im.onload=()=>{
+   const k=Math.min(1,1280/Math.max(im.naturalWidth,im.naturalHeight)),c=document.createElement("canvas");
+   c.width=Math.round(im.naturalWidth*k);c.height=Math.round(im.naturalHeight*k);
+   c.getContext("2d").drawImage(im,0,0,c.width,c.height);
+   const b64=c.toDataURL("image/jpeg",.85).split(",")[1];
+   addToGallery(b64);
+   if(!stream&&i===files.length-1)showStill(b64);
+   URL.revokeObjectURL(im.src);
+  };
+  im.src=URL.createObjectURL(f);
+ });
+ e.target.value="";
+};
+function grabFrame(){
+ if(!frozen&&stream){const v=$("vid");if(!v.videoWidth)return null;
+  const k=Math.min(1,1280/Math.max(v.videoWidth,v.videoHeight)),c=document.createElement("canvas");
+  c.width=Math.round(v.videoWidth*k);c.height=Math.round(v.videoHeight*k);
+  c.getContext("2d").drawImage(v,0,0,c.width,c.height);
+  return c.toDataURL("image/jpeg",.85).split(",")[1];
+ }
+ return img||null;
+}
+$("bAdd").onclick=()=>{const b=grabFrame();if(!b){bot("Activez la caméra, importez ou figez une photo d'abord.","e");return}addToGallery(b)};
+function draw(src,w,h){const k=Math.min(1,1280/Math.max(w,h)),c=$("frame");
+ c.width=Math.round(w*k);c.height=Math.round(h*k);c.getContext("2d").drawImage(src,0,0,c.width,c.height);
+ img=c.toDataURL("image/jpeg",.85).split(",")[1];
+ c.style.display="block";$("vid").style.display="none";$("ph").style.display="none";frozen=true;setB("❄ Image figée","frz")}
+function capture(){const v=$("vid");if(!frozen){if(!stream||!v.videoWidth)return false;draw(v,v.videoWidth,v.videoHeight)}return !!img}
+function zones(z){const c=$("frame"),x=c.getContext("2d");if(!z||!z.length)return;
+ const lw=Math.max(2,c.width/300),fs=Math.max(12,c.width/55);x.lineWidth=lw;x.font=`bold ${fs}px system-ui`;
+ z.forEach((q,i)=>{const X=q.x*c.width,Y=q.y*c.height,W=q.w*c.width,H=q.h*c.height;
+  x.strokeStyle="#ff6b5e";x.setLineDash([lw*3,lw*2]);x.strokeRect(X,Y,W,H);x.setLineDash([]);
+  const t=(i+1)+" "+q.label,tw=x.measureText(t).width+8;x.fillStyle="#ff6b5e";x.fillRect(X,Math.max(0,Y-fs-6),tw,fs+6);
+  x.fillStyle="#000";x.fillText(t,X+4,Math.max(fs,Y-5))})}
+
+// ---------- chat ----------
+function bot(t,cls,extra){const d=document.createElement("div");d.className="m "+(cls||"a");d.textContent=t;
+ if(extra){const z=document.createElement("div");z.className="zl";z.textContent=extra;d.appendChild(z)}
+ $("chat").appendChild(d);$("chat").scrollTop=1e9;return d}
+const FMT=`Réponds UNIQUEMENT en JSON : {"reply":string,"zones":[{"label":string,"x":0..1,"y":0..1,"w":0..1,"h":0..1,"confidence":"faible|moyenne|élevée"}],"safety":null|string}
+- "reply" : français, court et concret, adapté au niveau de l'utilisateur. Toujours finir par UNE prochaine action précise (inspection ou mesure : point de test, mode du multimètre, valeur attendue).
+- "zones" : 0 à 4 zones de l'image à inspecter (coordonnées approximatives en fraction de l'image, origine en haut à gauche). Vide si pas d'image ou rien de fiable.
+- Sois honnête : si une référence CMS est illisible, dis "à confirmer visuellement". N'affirme jamais une cause sans mesure qui la confirme. Si l'image est floue, mal éclairée ou inutile, demande une meilleure image.
+- "safety" : avertissement court si l'étape implique secteur, condensateurs HT, batterie lithium ou chauffe.`;
+async function send(text,withImg,forceImgs){
+ if(busy||!text.trim())return;
+ let ims=[];
+ if(withImg){
+  if(forceImgs)ims=forceImgs;
+  else if(gallery.length)ims=gallery.slice();
+  else if(capture())ims=[img];
+  else{bot("Activez la caméra, ajoutez une vue ou importez une photo d'abord.","e");return}
+ }
+ const dev=$("dev").value.trim(),sym=$("sym").value.trim();
+ if(!dev&&!sym){bot("Indiquez au moins l'appareil ou le symptôme.","e");return}
+ bot(text,"u");hist.push("Technicien : "+text);
+ busy=true;$("bSend").disabled=$("bSnap").disabled=true;const w=bot("L'IA analyse…");
+ const prompt=`Tu es BenchMate, un technicien de réparation électronique expérimenté qui coache un utilisateur en direct devant sa carte.\nAppareil : ${dev||"?"}\nSymptôme : ${sym||"?"}\nNiveau : ${$("lvl").value}\n${ims.length?`${ims.length} image(s) de la carte sont jointes (différents angles ou zooms possibles).`:"Pas de nouvelle image (l'analyse visuelle précédente reste valable)."}\nConversation :\n${hist.slice(-10).join("\n")}\n\n${FMT}`;
+ try{
+  const raw=await callAI(prompt,ims);let r;
+  try{r=JSON.parse((raw.match(/\{[\s\S]*\}/)||[raw])[0])}catch(e){r={reply:raw,zones:[]}}
+  w.remove();
+  const zs=Array.isArray(r.zones)?r.zones.filter(q=>[q.x,q.y,q.w,q.h].every(n=>typeof n==="number")):[];
+  if(ims.length===1&&frozen&&zs.length)zones(zs);
+  last=r.reply||"";hist.push("IA : "+last);
+  bot(last||"(réponse vide)","a",zs.length?"Zones (approximatives) : "+zs.map((q,i)=>`${i+1}. ${q.label} [${q.confidence||"?"}]`).join(" · "):"");
+  if(r.safety)bot("⚠ "+r.safety,"s");
+ }catch(e){w.remove();bot(e.message||"Erreur IA","e")}
+ busy=false;$("bSend").disabled=$("bSnap").disabled=false;
+}
+$("bSnap").onclick=()=>send(gallery.length?`Analyse ces ${gallery.length} image(s) de la carte et dis-moi par où commencer.`:"Analyse cette image de la carte et dis-moi par où commencer.",true);
+function sendOne(i){const b=gallery[i];if(!b)return;activeIdx=i;showStill(b);renderGal();send(`Analyse uniquement la photo n°${i+1} de la carte, en ignorant les autres images de la galerie.`,true,[b])}
+$("bSend").onclick=()=>{const t=$("msg").value;$("msg").value="";send(t,false)};
+$("msg").onkeydown=e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();$("bSend").click()}};
+document.querySelectorAll(".chips button[data-q]").forEach(b=>b.onclick=()=>send(b.dataset.q,false));
+
+// ---------- providers ----------
+function cur(){const p=cfg.p;return{p,key:cfg.keys[p]||"",m:cfg.models[p]||DEF[p].m}}
+async function callAI(prompt,images){
+ const c=cur();if(!c.key)throw new Error("Ajoutez votre clé API gratuite dans « ⚙︎ IA gratuite ».");
+ const imgs=images||[];
+ let r,j;
+ try{
+  if(c.p==="gemini"){
+   const parts=[{text:prompt}];imgs.forEach(b64=>parts.push({inline_data:{mime_type:"image/jpeg",data:b64}}));
+   r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(c.m)}:generateContent`,{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":c.key},body:JSON.stringify({contents:[{role:"user",parts}],generationConfig:{responseMimeType:"application/json"}})});
+   j=await r.json();if(!r.ok)throw new Error(j.error?.message||"Erreur "+r.status);
+   return (j.candidates?.[0]?.content?.parts||[]).map(p=>p.text||"").join("");
+  }
+  const url=c.p==="groq"?"https://api.groq.com/openai/v1/chat/completions":"https://openrouter.ai/api/v1/chat/completions";
+  const content=[{type:"text",text:prompt}];imgs.forEach(b64=>content.push({type:"image_url",image_url:{url:"data:image/jpeg;base64,"+b64}}));
+  r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+c.key},body:JSON.stringify({model:c.m,messages:[{role:"user",content}],temperature:.3})});
+  j=await r.json();if(!r.ok)throw new Error(j.error?.message||"Erreur "+r.status);
+  return j.choices?.[0]?.message?.content||"";
+ }catch(e){throw new Error(e instanceof TypeError?"Réseau bloqué ou clé invalide. Ouvrez la page hors bac à sable (fichier local ou votre hébergement).":e.message)}
+}
+function fillS(){const p=$("pv").value;$("key").value=cfg.keys[p]||"";$("mod").value=cfg.models[p]||DEF[p].m;const d=DEF[p];$("hint").innerHTML=esc(d.h)+`<a href="${d.u}" target="_blank" rel="noopener noreferrer">${d.n}</a>`+esc(d.x||"")}
+$("bS").onclick=()=>{$("pv").value=cfg.p;fillS();$("tr").textContent="";$("dS").showModal()};
+$("pv").onchange=fillS;$("cl").onclick=()=>$("dS").close();
+function saveS(){const p=$("pv").value;cfg.p=p;cfg.keys[p]=$("key").value.trim();cfg.models[p]=$("mod").value.trim()||DEF[p].m;ls.set("bm_cfg",cfg)}
+$("sv").onclick=()=>{saveS();$("dS").close()};
+$("tst").onclick=async()=>{saveS();$("tr").textContent="Test…";try{await callAI('Réponds {"ok":true}');$("tr").textContent="✔ Connexion OK"}catch(e){$("tr").textContent="✖ "+e.message}};
+
+// ---------- journal ----------
+$("bDone").onclick=()=>{const dev=$("dev").value.trim();if(!dev){bot("Renseignez l'appareil d'abord.","e");return}
+ const ok=confirm("La réparation a-t-elle réussi ? OK = réparé, Annuler = non réparé");
+ const note=prompt("Cause trouvée / pièce remplacée (facultatif) :","")||"";
+ const j=ls.get("bm_j",[]);j.unshift({date:new Date().toISOString().slice(0,10),dev,sym:$("sym").value.trim(),ok,note,ia:last});ls.set("bm_j",j);bot("Enregistré dans le journal.")};
+function rj(){const j=ls.get("bm_j",[]);$("jl").innerHTML=j.length?j.map(e=>`<div class="je"><b>${esc(e.dev)}</b> · ${e.ok?"✔ réparé":"✖ non réparé"} · <span class="mu">${esc(e.date)}</span><div>Symptôme : ${esc(e.sym)}</div>${e.note?`<div>Notes : ${esc(e.note)}</div>`:""}</div>`).join(""):'<p class="mu">Aucune réparation enregistrée.</p>'}
+$("bJ").onclick=()=>{rj();$("dJ").showModal()};$("jc").onclick=()=>$("dJ").close();
+$("jx").onclick=()=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(ls.get("bm_j",[]),null,2)],{type:"application/json"}));a.download="journal-reparations.json";a.click()};
+</script>
+</body>
+</html>
