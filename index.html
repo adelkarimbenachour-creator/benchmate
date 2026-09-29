@@ -58,6 +58,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 dialog label{display:block;font-size:12px;color:var(--mu);margin:10px 0 3px}
 .mu{color:var(--mu);font-size:13px}
 a{color:var(--ac)}
+a.btn{display:inline-block;background:var(--pn);border:1px solid var(--bd);border-radius:8px;padding:8px 12px;color:var(--tx);text-decoration:none}a.btn:hover{border-color:var(--ac)}
 .je{border-top:1px solid var(--bd);padding:8px 0}
 .foot{font-size:11px;color:var(--mu);text-align:center}
 @media(max-width:900px){.app{grid-template-columns:1fr;height:auto}.view{height:58vh;flex:none}.chat{max-height:50vh}}
@@ -67,7 +68,7 @@ a{color:var(--ac)}
 <header id="hdr">
   <h1>Bench<b>Mate</b></h1>
   <p>Montrez votre carte à l'IA. Elle la regarde avec vous, repère les zones suspectes et vous guide mesure après mesure. Vous n'êtes plus seul face à la panne.</p>
-  <button id="bJ">Journal</button><button id="bS">⚙︎ IA gratuite</button><button id="bTheme" title="Changer de thème">🌙</button>
+  <a class="btn" href="Quick_Setup.pdf" target="_blank" rel="noopener" title="Guide de configuration rapide (PDF)">📄 Guide</a><button id="bJ">Journal</button><button id="bS">⚙︎ IA gratuite</button><button id="bTheme" title="Changer de thème">🌙</button>
 </header>
 
 <div class="app" id="app">
@@ -125,6 +126,7 @@ a{color:var(--ac)}
   <label>Clé API</label><input id="key" type="password" autocomplete="off">
   <label>Modèle</label><input id="mod">
   <div class="mu" id="hint" style="margin-top:8px"></div>
+  <div class="mu" style="margin-top:8px">📄 Besoin d'aide ? <a href="Quick_Setup.pdf" target="_blank" rel="noopener">Guide de configuration rapide (PDF)</a></div>
   <div class="bar" style="margin-top:12px"><button class="p" id="sv">Enregistrer</button><button id="tst">Tester</button><button id="cl">Fermer</button><span class="mu" id="tr"></span></div>
 </dialog>
 <dialog id="dJ">
