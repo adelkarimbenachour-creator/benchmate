@@ -5,7 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>BenchMate – Votre copilote de réparation électronique</title>
 <style>
-:root{--bg:#0b100d;--pn:#131b16;--bd:#25332a;--tx:#e8f0ea;--mu:#8ea295;--ac:#3ddc97;--wa:#ff6b5e;--am:#f5c15a}
+:root{--bg:#0b100d;--pn:#131b16;--bd:#25332a;--tx:#e8f0ea;--mu:#8ea295;--ac:#3ddc97;--actx:#04140c;--wa:#ff6b5e;--wa2:#3a1a18;--am:#f5c15a}
+:root[data-theme="light"]{--bg:#f5f8f5;--pn:#ffffff;--bd:#d7e0d9;--tx:#132018;--mu:#5c6b62;--ac:#0e8f5c;--actx:#f2fff8;--wa:#c0342a;--wa2:#fbe4e1;--am:#8a5a00}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#f5f8f5;--pn:#ffffff;--bd:#d7e0d9;--tx:#132018;--mu:#5c6b62;--ac:#0e8f5c;--actx:#f2fff8;--wa:#c0342a;--wa2:#fbe4e1;--am:#8a5a00}}
+html{color-scheme:dark light}
+:root[data-theme="light"]{color-scheme:light}
+:root[data-theme="dark"]{color-scheme:dark}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh}
 header{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--bd);flex-wrap:wrap}
@@ -14,7 +19,7 @@ header p{margin:0;color:var(--mu);font-size:13px;flex:1;min-width:200px}
 button,select,input,textarea{font:inherit;color:var(--tx)}
 button{background:var(--pn);border:1px solid var(--bd);border-radius:8px;padding:8px 12px;cursor:pointer}
 button:hover{border-color:var(--ac)}
-button.p{background:var(--ac);border-color:var(--ac);color:#04140c;font-weight:700}
+button.p{background:var(--ac);border-color:var(--ac);color:var(--actx);font-weight:700}
 button:disabled{opacity:.5;cursor:default}
 input,select,textarea{background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:8px;width:100%}
 .app{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:12px;padding:12px;height:calc(100vh - 62px)}
@@ -41,7 +46,7 @@ input,select,textarea{background:var(--bg);border:1px solid var(--bd);border-rad
 .m{padding:8px 10px;border-radius:10px;max-width:95%;white-space:pre-wrap}
 .m.u{background:#1d2b23;align-self:flex-end}
 .m.a{background:var(--bg);border:1px solid var(--bd)}
-.m.s{background:#3a1a18;color:var(--wa);border:1px solid var(--wa);font-size:13px}
+.m.s{background:var(--wa2);color:var(--wa);border:1px solid var(--wa);font-size:13px}
 .m.e{color:var(--wa);font-size:13px}
 .zl{font-size:13px;color:var(--mu);margin-top:6px}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
@@ -62,7 +67,7 @@ a{color:var(--ac)}
 <header id="hdr">
   <h1>Bench<b>Mate</b></h1>
   <p>Montrez votre carte à l'IA. Elle la regarde avec vous, repère les zones suspectes et vous guide mesure après mesure. Vous n'êtes plus seul face à la panne.</p>
-  <button id="bJ">Journal</button><button id="bS">⚙︎ IA gratuite</button>
+  <button id="bJ">Journal</button><button id="bS">⚙︎ IA gratuite</button><button id="bTheme" title="Changer de thème">🌙</button>
 </header>
 
 <div class="app" id="app">
@@ -147,6 +152,23 @@ a{color:var(--ac)}
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const ls={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+
+// ---------- light/dark theme ----------
+function applyTheme(t){
+ if(t)document.documentElement.setAttribute("data-theme",t);
+ else document.documentElement.removeAttribute("data-theme");
+ const sys=window.matchMedia&&window.matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";
+ $("bTheme").textContent=(t||sys)==="light"?"☀️":"🌙";
+}
+let theme=ls.get("bm_theme",null);
+applyTheme(theme);
+$("bTheme").onclick=()=>{
+ const sys=window.matchMedia&&window.matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";
+ const now=theme||sys;
+ theme=now==="light"?"dark":"light";
+ ls.set("bm_theme",theme);
+ applyTheme(theme);
+};
 const DEF={gemini:{m:"gemini-2.5-flash",h:"Clé gratuite : ",u:"https://aistudio.google.com/apikey",n:"aistudio.google.com/apikey"},
  groq:{m:"meta-llama/llama-4-scout-17b-16e-instruct",h:"Clé gratuite : ",u:"https://console.groq.com/keys",n:"console.groq.com/keys",x:" (choisir un modèle vision)"},
  openrouter:{m:"google/gemini-2.0-flash-exp:free",h:"Clé : ",u:"https://openrouter.ai/keys",n:"openrouter.ai/keys",x:", puis un modèle vision se terminant par :free"}};
